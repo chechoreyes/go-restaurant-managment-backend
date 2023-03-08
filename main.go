@@ -1,18 +1,26 @@
 package main
 
 import (
+	"log"
 	"os"
 
+	"github.com/chechoreyes/go-restaurant-managment-backend-project/database"
+	"github.com/chechoreyes/go-restaurant-managment-backend-project/middleware"
 	"github.com/chechoreyes/go-restaurant-managment-backend-project/routes"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
-
-	"go-restaurant-managment-backend-project/middleware"
 )
 
 var foodCollection *mongo.Collection = database.OpenCollection(database.Client, "food")
 
 func main() {
+	// DotENV file
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	port := os.Getenv("PORT")
 
 	if port == "" {
@@ -35,3 +43,4 @@ func main() {
 
 	router.Run(":" + port)
 }
+
