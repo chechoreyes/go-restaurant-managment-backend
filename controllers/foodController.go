@@ -3,7 +3,9 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/chechoreyes/go-restaurant-managment-backend-project/database"
@@ -19,8 +21,51 @@ var foodCollection *mongo.Collection = database.OpenCollection(database.Client, 
 var validate = validator.New()
 
 func GetFoods() gin.HandlerFunc {
-	return func(c *gin.Context) {}
+	return func(c *gin.Context) {
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+
+		// RECORDS PER PAGE
+		recordPerPage, err := strconv.Atoi(c.Query("recordPerPage"))
+		if err != nil || recordPerPage < 1 {
+			recordPerPage = 10
+		}
+
+		// PAGINATION
+		page, err := strconv.Atoi(c.Query("page"))
+		if err != nil || page < 1 {
+			page = 1
+		}
+
+		// RECORD STARTS
+		startIndex := (page - 1) * recordPerPage
+		startIndex, err = strconv.Atoi(c.Query("startIndex"))
+
+		// AGGREGATION TO SEARCH RESUTLS
+		matchStage := bson.D{{"$match", bson.D{{}}}}
+		groupStage := bson.D{{"$group", bson.D{{"_id", bson.D{{"_id", "null"}}}, {"total_count", bson.D{{"$sum", 1}}}, {"data", bson.D{{"$push", "$$ROOT"}}}}}}
+
+		projectStage := bson.D{
+			{
+				"$project", bson.D{
+					{"_id", 0},
+					{"total_count", 1},
+					{"food_items", bson.D{{"$slice", []interface{}{"$data", startIndex, recordPerPage}}}},
+				}}}
+
+		result, err := foodCollection.Aggregate(ctx, mongo.Pipeline{
+			matchStage, groupStage, projectStage})
+		defer cancel()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occured while listing food items"})
+		}
+		var allFoods []bson.M
+		if err = result.All(ctx, &allFoods); err != nil {
+			log.Fatal(err)
+		}
+		c.JSON(http.StatusOK, allFoods[0])
+	}
 }
+
 func GetFood() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
@@ -90,7 +135,9 @@ func CreateFood() gin.HandlerFunc {
 }
 
 func UpdateFood() gin.HandlerFunc {
-	return func(c *gin.Context) {}
+	return func(c *gin.Context) {
+
+	}
 }
 
 func round(num float64) int {
