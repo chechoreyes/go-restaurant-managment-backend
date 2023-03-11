@@ -108,20 +108,20 @@ func UpdateMenu() gin.HandlerFunc {
 			}
 		}
 
-		updateObj = append(updateObj, bson.E{"start_date", menu.Start_Date})
-		updateObj = append(updateObj, bson.E{"end_date", menu.End_Date})
+		updateObj = append(updateObj, bson.E{Key: "start_date", Value: menu.Start_Date})
+		updateObj = append(updateObj, bson.E{Key: "end_date", Value: menu.End_Date})
 
 		if menu.Name != "" {
-			updateObj = append(updateObj, bson.E{"name", menu.Name})
+			updateObj = append(updateObj, bson.E{Key: "name", Value: menu.Name})
 		}
 		if menu.Category != "" {
 			{
-				updateObj = append(updateObj, bson.E{"category", menu.Category})
+				updateObj = append(updateObj, bson.E{Key: "category", Value: menu.Category})
 			}
 		}
 
 		menu.UpdatedAt, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
-		updateObj = append(updateObj, bson.E{"updated_at", menu.UpdatedAt})
+		updateObj = append(updateObj, bson.E{Key: "updated_at", Value: menu.UpdatedAt})
 
 		upsert := true
 
@@ -129,18 +129,18 @@ func UpdateMenu() gin.HandlerFunc {
 			Upsert: &upsert,
 		}
 
-		result, err := menu.Collection.UpdateOne(
+		result, err := menuCollection.UpdateOne(
 			ctx,
 			filter,
 			bson.D{
-				{"$set": updateObj}
+				{Key: "$set", Value: updateObj},
 			},
 			&opt,
 		)
 
 		if err != nil {
 			msg := "Menu update failed"
-			c.JSON(http.StatusInternalServerError, gin.H{"error":msg})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		}
 
 		defer cancel()
