@@ -100,6 +100,7 @@ func CreateFood() gin.HandlerFunc {
 
 		if err := c.BindJSON(&food); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
 		}
 
 		validationErr := validate.Struct(food)
